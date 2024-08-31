@@ -10,6 +10,5 @@ spec:
   - type: metrics-api
     metadata:
       targetValue: "10"
-      url: "https://groffemetrics-containerapp.delightfulground-2c79dcbf.eastus.azurecontainerapps.io/Metrics"
-      #url: "https://testapim.azure-api.net/Metrics"
+      url: "https://testapim.azure-api.net/Metrics"
       valueLocation: 'currentValue'
