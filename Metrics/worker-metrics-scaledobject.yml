@@ -1,0 +1,15 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker-metrics-scaledobject
+spec:
+  maxReplicaCount: 10
+  scaleTargetRef:
+    name: workertest
+  triggers:
+  - type: metrics-api
+    metadata:
+      targetValue: "10"
+      url: "https://groffemetrics-containerapp.delightfulground-2c79dcbf.eastus.azurecontainerapps.io/Metrics"
+      #url: "https://testapim.azure-api.net/Metrics"
+      valueLocation: 'currentValue'

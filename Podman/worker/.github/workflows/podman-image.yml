@@ -1,0 +1,55 @@
+name: podman-build-dockerhub
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  SOURCE_DIRECTORY: './WorkerTests'
+  IMAGE_DOCKERHUB: 'worker-tests-dotnet8-podman'
+
+jobs:
+
+  build-push:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build de imagem
+      run: |
+        cd ${{ env.SOURCE_DIRECTORY }}
+        podman build . --file Dockerfile --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_DOCKERHUB }}:latest      
+    - name: Login no Docker Hub
+      run: |
+        echo ${{ secrets.DOCKERHUB_PASSWORD }} | podman login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin docker.io
+    - name: Geração de tag com número do Build e Push no Docker Hub
+      run: |
+        podman tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_DOCKERHUB }}:latest ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_DOCKERHUB }}:$GITHUB_RUN_NUMBER
+        IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_DOCKERHUB }}"
+        for TAG in $(podman images --format "{{.Tag}}" ${IMAGE_NAME}); do
+          podman push ${IMAGE_NAME}:${TAG}
+        done
+    - name: Exibir imagens no ambiente
+      run: podman images
+
+  tests:
+
+    runs-on: ubuntu-latest
+    needs: [build-push]
+
+    steps:
+    - name: Criacão de container para testes
+      run: podman run -d --name worker-tests -e WaitingTimeInSeconds=3 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_DOCKERHUB }}:$GITHUB_RUN_NUMBER
+    - name: Exibir containers em execução
+      run: podman ps -a
+    - name: Aguardar 20 segundos
+      run: sleep 20s
+    - name: Exibição dos logs do container
+      run: podman logs worker-tests
+
+
